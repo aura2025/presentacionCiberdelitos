@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Presentación Interactiva - Ciberseguridad e IA</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- QRCode.js Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <!-- Google Font: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            darkBg: '#090d16',
+            cardBg: '#0e172a',
+            cardBorder: '#1e293b',
+            cyanAccent: '#00b4d8',
+            cyanHover: '#0077b6',
+            accentBlue: '#3b82f6',
+            amberGold: '#f59e0b',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #090d16;
+      color: #f1f5f9;
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+    }
+
+    .dashed-panel {
+      border: 2px dashed #1e3a5f;
+      background-color: rgba(14, 23, 42, 0.75);
+      backdrop-filter: blur(10px);
+    }
+
+    .dashed-panel-cyan {
+      border: 2px dashed #00b4d8;
+      background-color: rgba(14, 23, 42, 0.9);
+    }
+
+    /* Custom Scrollbars */
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #090d16;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #1e293b;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #00b4d8;
+    }
+
+    /* Waveform animation for Voice Test */
+    @keyframes wavePulse {
+      0%, 100% { transform: scaleY(0.25); }
+      50% { transform: scaleY(1); }
+    }
+    .wave-bar {
+      animation: wavePulse 1.2s infinite ease-in-out;
+    }
+    .wave-bar:nth-child(2) { animation-delay: 0.15s; }
+    .wave-bar:nth-child(3) { animation-delay: 0.3s; }
+    .wave-bar:nth-child(4) { animation-delay: 0.45s; }
+    .wave-bar:nth-child(5) { animation-delay: 0.2s; }
+    .wave-bar:nth-child(6) { animation-delay: 0.35s; }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between antialiased selection:bg-cyanAccent selection:text-black">
+
+  <!-- HEADER BAR -->
+  <header class="bg-cardBg/90 border-b border-cardBorder px-4 py-3 sticky top-0 z-40 backdrop-blur-md shadow-lg">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      
+      <!-- Brand & Mode Title -->
+      <div class="flex items-center gap-3">
+        <div class="p-2.5 bg-cyanAccent/10 border border-cyanAccent/20 rounded-xl text-cyanAccent shadow-inner">
+          <i class="fa-solid fa-chart-pie text-xl"></i>
+        </div>
+        <div>
+          <h1 class="text-base font-bold text-white flex items-center gap-2">
+            Presentación Interactiva Live
+            <span id="roleBadge" class="text-xs px-2.5 py-0.5 rounded-full font-bold bg-cyanAccent/20 text-cyanAccent border border-cyanAccent/30">
+              Cargando...
+            </span>
+          </h1>
+          <p class="text-xs text-slate-400 flex items-center gap-1.5" id="syncStatus">
+            <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+            Conectando servidor...
+          </p>
+        </div>
+      </div>
+
+      <!-- Presenter Controls (Visible ONLY in Presenter Mode) -->
+      <div id="presenterToolbar" class="hidden flex flex-wrap items-center gap-2">
+        <!-- Navigation Buttons -->
+        <div class="flex items-center bg-darkBg border border-cardBorder rounded-xl p-1 shadow-inner gap-1">
+          <button id="btnPrevSlide" class="px-3 py-1.5 rounded-lg hover:bg-slate-800 text-slate-300 disabled:opacity-30 transition flex items-center gap-1 text-xs font-semibold" title="Diapositiva Anterior">
+            <i class="fa-solid fa-chevron-left"></i> Anterior
+          </button>
+          <span class="text-xs font-bold px-3 text-cyanAccent tracking-wider" id="slideNumberIndicator">1 / 4</span>
+          <button id="btnNextSlide" class="px-3 py-1.5 rounded-lg hover:bg-slate-800 text-slate-300 disabled:opacity-30 transition flex items-center gap-1 text-xs font-semibold" title="Diapositiva Siguiente">
+            Siguiente <i class="fa-solid fa-chevron-right"></i>
+          </button>
+        </div>
+
+        <!-- Toggle Lock Voting -->
+        <button id="btnToggleVoting" class="px-3 py-1.5 bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-600/30 rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
+          <i class="fa-solid fa-lock-open" id="iconVotingStatus"></i>
+          <span id="textVotingStatus">Votación Activa</span>
+        </button>
+
+        <!-- Toggle Reveal Official Answers -->
+        <button id="btnToggleAnswers" class="px-3 py-1.5 bg-amber-600/20 text-amber-400 border border-amber-500/30 hover:bg-amber-600/30 rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
+          <i class="fa-solid fa-eye"></i>
+          <span id="textRevealStatus">Revelar Respuestas</span>
+        </button>
+
+        <!-- Reset Votes Button -->
+        <button id="btnResetVotes" class="px-3 py-1.5 bg-rose-600/20 text-rose-400 border border-rose-500/30 hover:bg-rose-600/30 rounded-xl text-xs font-bold flex items-center gap-1.5 transition" title="Reiniciar Conteo de Votos">
+          <i class="fa-solid fa-rotate-right"></i>
+        </button>
+
+        <!-- Display Access QR Modal -->
+        <button id="btnShowQRModal" class="px-3.5 py-1.5 bg-cyanAccent text-slate-950 font-black hover:bg-cyan-400 rounded-xl text-xs flex items-center gap-1.5 transition shadow-lg shadow-cyanAccent/10">
+          <i class="fa-solid fa-qrcode"></i>
+          <span>Mostrar QR</span>
+        </button>
+      </div>
+
+      <!-- Switch Role Toggle -->
+      <div class="flex items-center">
+        <button id="btnSwitchRole" class="px-3.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold flex items-center gap-2 transition">
+          <i class="fa-solid fa-right-left text-cyanAccent"></i>
+          <span id="switchRoleText">Cambiar Rol</span>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toastMessage" class="fixed top-20 right-5 z-50 transform translate-x-full transition-transform duration-300 ease-in-out max-w-sm bg-cardBg border border-cyanAccent/50 text-white p-4 rounded-2xl shadow-2xl flex items-center gap-3">
+    <i class="fa-solid fa-circle-info text-cyanAccent text-xl" id="toastIcon"></i>
+    <span id="toastText" class="text-sm font-semibold">Notificación</span>
+  </div>
+
+  <!-- MAIN SLIDES CONTAINER -->
+  <main class="flex-grow max-w-7xl w-full mx-auto p-4 md:p-6 flex flex-col justify-center items-center">
+
+    <div id="slidesViewport" class="w-full max-w-5xl">
+
+      <!-- ================================================================= -->
+      <!-- SLIDE 0: Cover Slide & Entrance QR Code -->
+      <!-- ================================================================= -->
+      <div id="slide-0" class="slide-view space-y-6">
+        <div class="dashed-panel rounded-3xl p-8 md:p-12 text-center space-y-8 shadow-2xl relative overflow-hidden">
+          <div class="inline-block px-4 py-1.5 rounded-full bg-cyanAccent/10 border border-cyanAccent/30 text-cyanAccent text-xs font-extrabold uppercase tracking-widest">
+            Sesión Interactiva en Vivo
+          </div>
+
+          <div class="space-y-3 max-w-2xl mx-auto">
+            <h1 class="text-3xl md:text-5xl font-black text-white tracking-tight leading-tight">
+              Ciberseguridad e Inteligencia Artificial
+            </h1>
+            <p class="text-slate-300 text-base md:text-lg">
+              Escanea el código QR con la cámara de tu celular para ingresar y enviar tus respuestas en tiempo real.
+            </p>
+          </div>
+
+          <!-- Prominent Fail-Proof QR Display -->
+          <div class="flex flex-col items-center justify-center space-y-4">
+            <div class="p-4 bg-white rounded-2xl shadow-2xl border-4 border-cyanAccent inline-block">
+              <!-- Primary Fail-Proof QR Image via QuickChart API -->
+              <img id="coverQrImage" src="" alt="Código QR de Acceso" class="w-48 h-48 md:w-56 md:h-56 object-contain rounded-lg">
+            </div>
+
+            <!-- Copy Audience Link Button -->
+            <button onclick="copyAudienceLink()" class="px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-cyanAccent border border-cyanAccent/40 font-bold rounded-xl text-xs flex items-center gap-2 transition shadow-lg">
+              <i class="fa-solid fa-copy"></i>
+              <span>Copiar Enlace de Entrada</span>
+            </button>
+          </div>
+
+          <div class="text-xs text-slate-400 font-medium">
+            🔒 Ritmo del Presentador: La pantalla de tu celular cambiará automáticamente al avanzar la presentación.
+          </div>
+        </div>
+      </div>
+
+      <!-- ================================================================= -->
+      <!-- SLIDE 1: Encuesta Interactiva del Público (Sí / No) -->
+      <!-- ================================================================= -->
+      <div id="slide-1" class="slide-view space-y-6 hidden">
+        <!-- Title Header -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-cardBorder pb-4">
+          <div>
+            <h2 class="text-2xl md:text-3xl font-extrabold text-white flex items-center gap-3">
+              <span>📊</span> Encuesta Interactiva del Público
+            </h2>
+            <p class="text-slate-400 text-sm mt-1">Presiona para registrar la respuesta del público presente:</p>
+          </div>
+          <span class="self-start md:self-auto px-3.5 py-1 rounded-full bg-cyanAccent/10 border border-cyanAccent/30 text-cyanAccent text-xs font-bold uppercase tracking-wider">
+            Encuesta Rápida
+          </span>
+        </div>
+
+        <!-- Panel container -->
+        <div class="dashed-panel rounded-3xl p-6 md:p-8 space-y-6 shadow-2xl">
+          
+          <!-- Question 1 -->
+          <div class="bg-cardBg/90 border border-cardBorder rounded-2xl p-5 shadow-lg space-y-4">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <h3 class="text-base md:text-lg font-semibold text-slate-100 flex items-center gap-2.5">
+                <i class="fa-solid fa-comment-sms text-cyanAccent"></i>
+                ¿Ha recibido SMS/Llamadas sospechosas?
+              </h3>
+              <!-- Voting Options -->
+              <div class="flex items-center gap-3 audience-vote-block">
+                <button onclick="castVote('slide1', 'q1', 'yes')" class="btn-vote flex-1 md:flex-none px-6 py-2.5 bg-darkBg hover:bg-cyanAccent/20 text-cyanAccent border border-cyanAccent/40 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2">
+                  <span>SÍ</span>
+                  <span class="bg-cyanAccent/20 px-2 py-0.5 rounded-md text-xs" id="val-s1-q1-yes">0</span>
+                </button>
+                <button onclick="castVote('slide1', 'q1', 'no')" class="btn-vote flex-1 md:flex-none px-6 py-2.5 bg-darkBg hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2">
+                  <span>NO</span>
+                  <span class="bg-slate-800 px-2 py-0.5 rounded-md text-xs" id="val-s1-q1-no">0</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Live Bar Progress -->
+            <div class="w-full bg-darkBg rounded-full h-3.5 overflow-hidden flex border border-slate-800">
+              <div id="bar-s1-q1-yes" class="bg-gradient-to-r from-cyanAccent to-blue-500 h-full transition-all duration-500" style="width: 50%"></div>
+              <div id="bar-s1-q1-no" class="bg-slate-700 h-full transition-all duration-500" style="width: 50%"></div>
+            </div>
+          </div>
+
+          <!-- Question 2 -->
+          <div class="bg-cardBg/90 border border-cardBorder rounded-2xl p-5 shadow-lg space-y-4">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <h3 class="text-base md:text-lg font-semibold text-slate-100 flex items-center gap-2.5">
+                <i class="fa-solid fa-wifi text-cyanAccent"></i>
+                ¿Ha usado Wi-Fi pública sin VPN?
+              </h3>
+              <!-- Voting Options -->
+              <div class="flex items-center gap-3 audience-vote-block">
+                <button onclick="castVote('slide1', 'q2', 'yes')" class="btn-vote flex-1 md:flex-none px-6 py-2.5 bg-darkBg hover:bg-cyanAccent/20 text-cyanAccent border border-cyanAccent/40 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2">
+                  <span>SÍ</span>
+                  <span class="bg-cyanAccent/20 px-2 py-0.5 rounded-md text-xs" id="val-s1-q2-yes">0</span>
+                </button>
+                <button onclick="castVote('slide1', 'q2', 'no')" class="btn-vote flex-1 md:flex-none px-6 py-2.5 bg-darkBg hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2">
+                  <span>NO</span>
+                  <span class="bg-slate-800 px-2 py-0.5 rounded-md text-xs" id="val-s1-q2-no">0</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Live Bar Progress -->
+            <div class="w-full bg-darkBg rounded-full h-3.5 overflow-hidden flex border border-slate-800">
+              <div id="bar-s1-q2-yes" class="bg-gradient-to-r from-cyanAccent to-blue-500 h-full transition-all duration-500" style="width: 50%"></div>
+              <div id="bar-s1-q2-no" class="bg-slate-700 h-full transition-all duration-500" style="width: 50%"></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ================================================================= -->
+      <!-- SLIDE 2: Actividad de Clasificación: ¿A qué categoría pertenece? -->
+      <!-- ================================================================= -->
+      <div id="slide-2" class="slide-view space-y-6 hidden">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-cardBorder pb-4">
+          <div>
+            <h2 class="text-xl md:text-2xl font-black text-cyanAccent uppercase tracking-tight">
+              04. ACTIVIDAD INTERACTIVA: ¿A QUÉ CATEGORÍA PERTENECE?
+            </h2>
+            <p class="text-slate-400 text-sm mt-1">Pregunta a la audiencia la categoría de cada situación antes de revelar la respuesta correcta:</p>
+          </div>
+          <span class="self-start md:self-auto px-4 py-1.5 rounded-full bg-blue-900/40 border border-cyanAccent/30 text-cyanAccent text-xs font-bold">
+            Participación del Público
+          </span>
+        </div>
+
+        <!-- Table Container -->
+        <div class="border border-cardBorder rounded-2xl overflow-hidden shadow-2xl bg-cardBg/90">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse min-w-[620px]">
+              <thead>
+                <tr class="bg-slate-900/90 text-cyanAccent text-xs font-bold uppercase tracking-wider border-b border-cardBorder">
+                  <th class="p-4 w-5/12">Situación / Escenario</th>
+                  <th class="p-4 w-4/12 text-center">Votación / Clasificación</th>
+                  <th class="p-4 w-3/12 text-center">Respuesta Oficial</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-cardBorder/60 text-sm">
+                
+                <!-- Row 1 -->
+                <tr class="hover:bg-slate-800/30 transition">
+                  <td class="p-4 font-semibold text-slate-200">Dañar una página web / Borrar información</td>
+                  <td class="p-4 text-center">
+                    <div class="flex items-center justify-center gap-2 audience-vote-block">
+                      <button onclick="castVote('slide2', 'r0', 'objeto')" class="px-3 py-1.5 bg-darkBg hover:bg-cyanAccent/20 text-cyanAccent border border-cyanAccent/40 rounded-lg text-xs font-bold transition">
+                        Votar Objeto (<span id="val-s2-r0-objeto">0</span>)
+                      </button>
+                      <button onclick="castVote('slide2', 'r0', 'medio')" class="px-3 py-1.5 bg-darkBg hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-lg text-xs font-bold transition">
+                        Votar Medio (<span id="val-s2-r0-medio">0</span>)
+                      </button>
+                    </div>
+                  </td>
+                  <td class="p-4 text-center">
+                    <span id="official-s2-r0" class="official-answer-tag hidden px-3 py-1 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40 font-extrabold text-xs uppercase">
+                      OBJETO
+                    </span>
+                  </td>
+                </tr>
+
+                <!-- Row 2 -->
+                <tr class="hover:bg-slate-800/30 transition">
+                  <td class="p-4 font-semibold text-slate-200">Bloquear un servidor / Ataque DDoS</td>
+                  <td class="p-4 text-center">
+                    <div class="flex items-center justify-center gap-2 audience-vote-block">
+                      <button onclick="castVote('slide2', 'r1', 'objeto')" class="px-3 py-1.5 bg-darkBg hover:bg-cyanAccent/20 text-cyanAccent border border-cyanAccent/40 rounded-lg text-xs font-bold transition">
+                        Votar Objeto (<span id="val-s2-r1-objeto">0</span>)
+                      </button>
+                      <button onclick="castVote('slide2', 'r1', 'medio')" class="px-3 py-1.5 bg-darkBg hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-lg text-xs font-bold transition">
+                        Votar Medio (<span id="val-s2-r1-medio">0</span>)
+                      </button>
+                    </div>
+                  </td>
+                  <td class="p-4 text-center">
+                    <span id="official-s2-r1" class="official-answer-tag hidden px-3 py-1 rounded-md bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-extrabold text-xs uppercase">
+                      MEDIO
+                    </span>
+                  </td>
+                </tr>
+
+                <!-- Row 3 -->
+                <tr class="hover:bg-slate-800/30 transition">
+                  <td class="p-4 font-semibold text-slate-200">Instalar ransomware en el sistema</td>
+                  <td class="p-4 text-center">
+                    <div class="flex items-center justify-center gap-2 audience-vote-block">
+                      <button onclick="castVote('slide2', 'r2', 'objeto')" class="px-3 py-1.5 bg-darkBg hover:bg-cyanAccent/20 text-cyanAccent border border-cyanAccent/40 rounded-lg text-xs font-bold transition">
+                        Votar Objeto (<span id="val-s2-r2-objeto">0</span>)
+                      </button>
+                      <button onclick="castVote('slide2', 'r2', 'medio')" class="px-3 py-1.5 bg-darkBg hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-lg text-xs font-bold transition">
+                        Votar Medio (<span id="val-s2-r2-medio">0</span>)
+                      </button>
+                    </div>
+                  </td>
+                  <td class="p-4 text-center">
+                    <span id="official-s2-r2" class="official-answer-tag hidden px-3 py-1 rounded-md bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-extrabold text-xs uppercase">
+                      MEDIO
+                    </span>
+                  </td>
+                </tr>
+
+                <!-- Row 4 -->
+                <tr class="hover:bg-slate-800/30 transition">
+                  <td class="p-4 font-semibold text-slate-200">Phishing / Suplantación de identidad web</td>
+                  <td class="p-4 text-center">
+                    <div class="flex items-center justify-center gap-2 audience-vote-block">
+                      <button onclick="castVote('slide2', 'r3', 'objeto')" class="px-3 py-1.5 bg-darkBg hover:bg-cyanAccent/20 text-cyanAccent border border-cyanAccent/40 rounded-lg text-xs font-bold transition">
+                        Votar Objeto (<span id="val-s2-r3-objeto">0</span>)
+                      </button>
+                      <button onclick="castVote('slide2', 'r3', 'medio')" class="px-3 py-1.5 bg-darkBg hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-lg text-xs font-bold transition">
+                        Votar Medio (<span id="val-s2-r3-medio">0</span>)
+                      </button>
+                    </div>
+                  </td>
+                  <td class="p-4 text-center">
+                    <span id="official-s2-r3" class="official-answer-tag hidden px-3 py-1 rounded-md bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-extrabold text-xs uppercase">
+                      MEDIO
+                    </span>
+                  </td>
+                </tr>
+
+                <!-- Row 5 -->
+                <tr class="hover:bg-slate-800/30 transition">
+                  <td class="p-4 font-semibold text-slate-200">Fraude bancario / Robo de dinero o información</td>
+                  <td class="p-4 text-center">
+                    <div class="flex items-center justify-center gap-2 audience-vote-block">
+                      <button onclick="castVote('slide2', 'r4', 'objeto')" class="px-3 py-1.5 bg-darkBg hover:bg-cyanAccent/20 text-cyanAccent border border-cyanAccent/40 rounded-lg text-xs font-bold transition">
+                        Votar Objeto (<span id="val-s2-r4-objeto">0</span>)
+                      </button>
+                      <button onclick="castVote('slide2', 'r4', 'medio')" class="px-3 py-1.5 bg-darkBg hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-lg text-xs font-bold transition">
+                        Votar Medio (<span id="val-s2-r4-medio">0</span>)
+                      </button>
+                    </div>
+                  </td>
+                  <td class="p-4 text-center">
+                    <span id="official-s2-r4" class="official-answer-tag hidden px-3 py-1 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40 font-extrabold text-xs uppercase">
+                      OBJETO / FIN
+                    </span>
+                  </td>
+                </tr>
+
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================================================================= -->
+      <!-- SLIDE 3: Prueba de Voz: Real vs IA -->
+      <!-- ================================================================= -->
+      <div id="slide-3" class="slide-view space-y-6 hidden">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-cardBorder pb-4">
+          <div>
+            <h2 class="text-xl md:text-2xl font-black text-cyanAccent uppercase tracking-tight">
+              13. PRUEBA DE VOZ: REAL VS IA
+            </h2>
+            <p class="text-slate-400 text-sm mt-1">Escucha las muestras de voz solicitando dinero urgente por Nequi y elige con la audiencia:</p>
+          </div>
+          <span class="self-start md:self-auto px-4 py-1.5 rounded-full bg-blue-900/40 border border-cyanAccent/30 text-cyanAccent text-xs font-bold">
+            Análisis Práctico
+          </span>
+        </div>
+
+        <!-- Cards Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          <!-- Audio A Card -->
+          <div class="bg-cardBg/90 border border-cardBorder rounded-2xl p-6 shadow-2xl flex flex-col justify-between items-center text-center space-y-5">
+            <div class="space-y-1">
+              <h3 class="text-xl font-extrabold text-white flex items-center justify-center gap-2">
+                <i class="fa-solid fa-volume-high text-cyanAccent"></i> Audio A
+              </h3>
+              <p class="text-xs text-slate-400 font-medium">[ Muestra A ]</p>
+            </div>
+
+            <!-- Waveform Animation Display -->
+            <div onclick="playVoiceSample('A')" class="w-full h-20 bg-darkBg/90 rounded-2xl border border-slate-800 flex items-center justify-center gap-2 px-4 cursor-pointer hover:border-cyanAccent transition shadow-inner">
+              <div class="w-2 h-8 bg-cyanAccent rounded-full wave-bar"></div>
+              <div class="w-2 h-14 bg-cyanAccent rounded-full wave-bar"></div>
+              <div class="w-2 h-6 bg-cyanAccent rounded-full wave-bar"></div>
+              <div class="w-2 h-12 bg-cyanAccent rounded-full wave-bar"></div>
+              <div class="w-2 h-16 bg-cyanAccent rounded-full wave-bar"></div>
+              <div class="w-2 h-7 bg-cyanAccent rounded-full wave-bar"></div>
+              <div class="w-2 h-10 bg-cyanAccent rounded-full wave-bar"></div>
+            </div>
+
+            <!-- Play Synth Audio Button -->
+            <button onclick="playVoiceSample('A')" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition shadow">
+              <i class="fa-solid fa-play text-cyanAccent"></i> Reproducir Audio A
+            </button>
+
+            <!-- Vote Button -->
+            <div class="w-full audience-vote-block pt-1">
+              <button onclick="castVote('slide3', 'choice', 'audioA')" class="w-full py-3 bg-darkBg hover:bg-cyanAccent/20 text-cyanAccent border border-cyanAccent/40 rounded-xl font-black text-sm transition flex items-center justify-center gap-3">
+                <span>Elegir Audio A</span>
+                <span class="bg-cyanAccent/20 px-2.5 py-0.5 rounded-md text-xs" id="val-s3-audioA">0</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Audio B Card -->
+          <div class="bg-cardBg/90 border border-cardBorder rounded-2xl p-6 shadow-2xl flex flex-col justify-between items-center text-center space-y-5">
+            <div class="space-y-1">
+              <h3 class="text-xl font-extrabold text-white flex items-center justify-center gap-2">
+                <i class="fa-solid fa-robot text-cyanAccent"></i> Audio B
+              </h3>
+              <p class="text-xs text-slate-400 font-medium">[ Muestra B ]</p>
+            </div>
+
+            <!-- Waveform Animation Display -->
+            <div onclick="playVoiceSample('B')" class="w-full h-20 bg-darkBg/90 rounded-2xl border border-slate-800 flex items-center justify-center gap-2 px-4 cursor-pointer hover:border-cyanAccent transition shadow-inner">
+              <div class="w-2 h-6 bg-cyan-500 rounded-full wave-bar"></div>
+              <div class="w-2 h-12 bg-cyan-500 rounded-full wave-bar"></div>
+              <div class="w-2 h-16 bg-cyan-500 rounded-full wave-bar"></div>
+              <div class="w-2 h-8 bg-cyan-500 rounded-full wave-bar"></div>
+              <div class="w-2 h-14 bg-cyan-500 rounded-full wave-bar"></div>
+              <div class="w-2 h-5 bg-cyan-500 rounded-full wave-bar"></div>
+              <div class="w-2 h-10 bg-cyan-500 rounded-full wave-bar"></div>
+            </div>
+
+            <!-- Play Synth Audio Button -->
+            <button onclick="playVoiceSample('B')" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-100 border border-slate-700 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition shadow">
+              <i class="fa-solid fa-play text-cyanAccent"></i> Reproducir Audio B
+            </button>
+
+            <!-- Vote Button -->
+            <div class="w-full audience-vote-block pt-1">
+              <button onclick="castVote('slide3', 'choice', 'audioB')" class="w-full py-3 bg-darkBg hover:bg-cyanAccent/20 text-cyanAccent border border-cyanAccent/40 rounded-xl font-black text-sm transition flex items-center justify-center gap-3">
+                <span>Elegir Audio B</span>
+                <span class="bg-cyanAccent/20 px-2.5 py-0.5 rounded-md text-xs" id="val-s3-audioB">0</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Live Status Bar -->
+        <div class="dashed-panel rounded-2xl p-4 text-center">
+          <p class="text-sm font-bold text-slate-200" id="audioVoteSummary">
+            Voto seleccionado: <span class="text-cyanAccent">Ninguno registrado aún.</span>
+          </p>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- AUDIENCE WAITING SCREEN (Shown when voting is paused) -->
+    <div id="audienceWaitingScreen" class="hidden w-full max-w-md dashed-panel-cyan rounded-3xl p-8 text-center space-y-5 my-8 shadow-2xl">
+      <div class="w-16 h-16 mx-auto bg-cyanAccent/20 text-cyanAccent rounded-full flex items-center justify-center text-2xl animate-pulse">
+        <i class="fa-solid fa-hourglass-half"></i>
+      </div>
+      <div class="space-y-2">
+        <h3 class="text-xl font-extrabold text-white">Atención a la Pantalla Principal</h3>
+        <p class="text-slate-300 text-sm">El presentador ha pausado la votación o está explicando el tema actual.</p>
+      </div>
+      <div class="pt-2 text-xs text-slate-400 border-t border-slate-800">
+        Tu dispositivo está sincronizado en tiempo real ⚡
+      </div>
+    </div>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="bg-cardBg/80 border-t border-cardBorder py-3 px-4 text-center text-xs text-slate-500">
+    <p>Presentación Interactiva Live • Sincronización en Tiempo Real con Firebase</p>
+  </footer>
+
+  <!-- MODAL: QR CODE ACCESS OVERLAY -->
+  <div id="qrModal" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-cardBg border border-cyanAccent/40 rounded-3xl p-6 md:p-8 max-w-sm w-full text-center space-y-6 shadow-2xl relative">
+      <!-- Close Button -->
+      <button id="btnCloseQRModal" class="absolute top-4 right-4 text-slate-400 hover:text-white text-xl">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <div class="space-y-1">
+        <h3 class="text-xl font-black text-white flex items-center justify-center gap-2">
+          <i class="fa-solid fa-qrcode text-cyanAccent"></i> Escanea para Entrar
+        </h3>
+        <p class="text-xs text-slate-400">Escanea este código QR con tu celular para enviar tus respuestas:</p>
+      </div>
+
+      <!-- QR Container with Fail-Proof Image Fallback -->
+      <div class="p-4 bg-white rounded-2xl inline-block shadow-inner mx-auto border-2 border-cyanAccent">
+        <img id="modalQrImage" src="" alt="QR Code" class="w-48 h-48 object-contain rounded">
+      </div>
+
+      <!-- URL Copy Box -->
+      <div class="bg-darkBg p-2.5 rounded-xl border border-cardBorder flex items-center justify-between gap-2">
+        <input id="audienceUrlInput" readonly type="text" class="bg-transparent text-xs text-slate-300 w-full focus:outline-none px-2 font-mono">
+        <button onclick="copyAudienceLink()" class="px-3 py-1.5 bg-cyanAccent text-slate-950 font-extrabold rounded-lg text-xs hover:bg-cyan-400 transition whitespace-nowrap">
+          Copiar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JAVASCRIPT & FIREBASE BACKEND -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+    import { 
+      getAuth, 
+      signInAnonymously, 
+      signInWithCustomToken 
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+    import { 
+      getFirestore, 
+      doc, 
+      onSnapshot, 
+      setDoc 
+    } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+    // Application Environment Global Variables
+    const appId = typeof __app_id !== 'undefined' ? __app_id : 'pres-interactiva-app';
+    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
+      apiKey: "AIzaSyDemoKeyOnlyForFallback12345",
+      authDomain: "demo-app.firebaseapp.com",
+      projectId: "demo-app",
+      storageBucket: "demo-app.appspot.com",
+      messagingSenderId: "1234567890",
+      appId: "1:1234567890:web:demo123456"
+    };
+
+    // Firebase Core Services
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    // Document Path adhering to Mandatory RULE 1
+    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'presentation', 'session');
+
+    // State Variables
+    let isPresenter = true;
+    let userVotedMap = {}; // Tracks local device votes to avoid multi-voting
+    let currentSessionData = {
+      currentSlide: 0,
+      votingActive: true,
+      revealedAnswers: false,
+      votes: {
+        slide1: { q1_yes: 0, q1_no: 0, q2_yes: 0, q2_no: 0 },
+        slide2: {
+          r0_objeto: 0, r0_medio: 0,
+          r1_objeto: 0, r1_medio: 0,
+          r2_objeto: 0, r2_medio: 0,
+          r3_objeto: 0, r3_medio: 0,
+          r4_objeto: 0, r4_medio: 0
+        },
+        slide3: { audioA: 0, audioB: 0 }
+      }
+    };
+
+    // Detect Role from URL (?role=audience)
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('role') === 'audience' || urlParams.get('mode') === 'audience') {
+      isPresenter = false;
+    }
+
+    // Initialize Application
+    async function initApp() {
+      try {
+        // Authenticate First (RULE 3)
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+
+        const syncStatus = document.getElementById('syncStatus');
+        syncStatus.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400"></span> Sincronización activa`;
+
+        // Listen for Realtime State Changes
+        onSnapshot(docRef, (snapshot) => {
+          if (snapshot.exists()) {
+            currentSessionData = snapshot.data();
+            renderPresentationState();
+          } else {
+            if (isPresenter) {
+              setDoc(docRef, currentSessionData);
+            }
+          }
+        }, (error) => {
+          console.error("Firestore sync error:", error);
+          showToast("Error conectando a la base de datos");
+        });
+
+      } catch (err) {
+        console.error("Authentication failed:", err);
+      }
+
+      setupEventListeners();
+      updateRoleUI();
+      setupQRCodes();
+    }
+
+    // Render Presentation UI according to real-time state
+    function renderPresentationState() {
+      const data = currentSessionData;
+
+      // 1. Switch Active Slide
+      const slideViews = document.querySelectorAll('.slide-view');
+      slideViews.forEach((slideEl, idx) => {
+        if (idx === data.currentSlide) {
+          slideEl.classList.remove('hidden');
+        } else {
+          slideEl.classList.add('hidden');
+        }
+      });
+
+      // Update Slide Indicator
+      document.getElementById('slideNumberIndicator').textContent = `${data.currentSlide + 1} / ${slideViews.length}`;
+
+      // 2. Audience Pause Screen Logic
+      const audienceWaiting = document.getElementById('audienceWaitingScreen');
+      const slidesViewport = document.getElementById('slidesViewport');
+
+      if (!isPresenter && !data.votingActive && data.currentSlide > 0) {
+        audienceWaiting.classList.remove('hidden');
+        slidesViewport.classList.add('hidden');
+      } else {
+        audienceWaiting.classList.add('hidden');
+        slidesViewport.classList.remove('hidden');
+      }
+
+      // 3. Presenter Controls Buttons
+      const iconVoting = document.getElementById('iconVotingStatus');
+      const textVoting = document.getElementById('textVotingStatus');
+      if (data.votingActive) {
+        iconVoting.className = 'fa-solid fa-lock-open';
+        textVoting.textContent = 'Votación Activa';
+      } else {
+        iconVoting.className = 'fa-solid fa-lock';
+        textVoting.textContent = 'Votación Bloqueada';
+      }
+
+      const textReveal = document.getElementById('textRevealStatus');
+      textReveal.textContent = data.revealedAnswers ? 'Ocultar Respuestas' : 'Revelar Respuestas';
+
+      // 4. Reveal Official Answers in Slide 2
+      const officialAnswerTags = document.querySelectorAll('.official-answer-tag');
+      officialAnswerTags.forEach(tag => {
+        if (data.revealedAnswers) {
+          tag.classList.remove('hidden');
+        } else {
+          tag.classList.add('hidden');
+        }
+      });
+
+      // 5. Update Slide 1 Counts & Dynamic Progress Bars
+      const s1 = data.votes?.slide1 || {};
+      const q1Yes = s1.q1_yes || 0;
+      const q1No = s1.q1_no || 0;
+      document.getElementById('val-s1-q1-yes').textContent = q1Yes;
+      document.getElementById('val-s1-q1-no').textContent = q1No;
+      
+      const q1Sum = (q1Yes + q1No) || 1;
+      document.getElementById('bar-s1-q1-yes').style.width = `${(q1Yes / q1Sum) * 100}%`;
+      document.getElementById('bar-s1-q1-no').style.width = `${(q1No / q1Sum) * 100}%`;
+
+      const q2Yes = s1.q2_yes || 0;
+      const q2No = s1.q2_no || 0;
+      document.getElementById('val-s1-q2-yes').textContent = q2Yes;
+      document.getElementById('val-s1-q2-no').textContent = q2No;
+      
+      const q2Sum = (q2Yes + q2No) || 1;
+      document.getElementById('bar-s1-q2-yes').style.width = `${(q2Yes / q2Sum) * 100}%`;
+      document.getElementById('bar-s1-q2-no').style.width = `${(q2No / q2Sum) * 100}%`;
+
+      // 6. Update Slide 2 Counts
+      const s2 = data.votes?.slide2 || {};
+      ['r0', 'r1', 'r2', 'r3', 'r4'].forEach(row => {
+        const objVal = s2[`${row}_objeto`] || 0;
+        const medVal = s2[`${row}_medio`] || 0;
+        const elObj = document.getElementById(`val-s2-${row}-objeto`);
+        const elMed = document.getElementById(`val-s2-${row}-medio`);
+        if (elObj) elObj.textContent = objVal;
+        if (elMed) elMed.textContent = medVal;
+      });
+
+      // 7. Update Slide 3 Counts
+      const s3 = data.votes?.slide3 || {};
+      const cntA = s3.audioA || 0;
+      const cntB = s3.audioB || 0;
+      document.getElementById('val-s3-audioA').textContent = cntA;
+      document.getElementById('val-s3-audioB').textContent = cntB;
+
+      const sumS3 = cntA + cntB;
+      const summaryText = document.getElementById('audioVoteSummary');
+      if (sumS3 > 0) {
+        summaryText.innerHTML = `Votos registrados: <span class="text-cyanAccent font-extrabold">${sumS3}</span> (Audio A: ${cntA} | Audio B: ${cntB})`;
+      } else {
+        summaryText.innerHTML = `Voto seleccionado: <span class="text-cyanAccent">Ninguno registrado aún.</span>`;
+      }
+    }
+
+    // Attach DOM Event Listeners
+    function setupEventListeners() {
+      document.getElementById('btnPrevSlide').addEventListener('click', () => stepSlide(-1));
+      document.getElementById('btnNextSlide').addEventListener('click', () => stepSlide(1));
+      document.getElementById('btnToggleVoting').addEventListener('click', toggleVotingLock);
+      document.getElementById('btnToggleAnswers').addEventListener('click', toggleAnswerReveal);
+      document.getElementById('btnResetVotes').addEventListener('click', resetAllVotes);
+      document.getElementById('btnSwitchRole').addEventListener('click', switchRoleMode);
+
+      document.getElementById('btnShowQRModal').addEventListener('click', () => {
+        document.getElementById('qrModal').classList.remove('hidden');
+      });
+      document.getElementById('btnCloseQRModal').addEventListener('click', () => {
+        document.getElementById('qrModal').classList.add('hidden');
+      });
+    }
+
+    // Switch Role between Presenter & Audience
+    function switchRoleMode() {
+      isPresenter = !isPresenter;
+      const url = new URL(window.location.href);
+      if (isPresenter) {
+        url.searchParams.delete('role');
+        url.searchParams.delete('mode');
+      } else {
+        url.searchParams.set('role', 'audience');
+      }
+      window.history.pushState({}, '', url);
+      updateRoleUI();
+      renderPresentationState();
+      showToast(isPresenter ? "Modo Presentador Activado" : "Modo Audiencia Activado");
+    }
+
+    function updateRoleUI() {
+      const badge = document.getElementById('roleBadge');
+      const toolbar = document.getElementById('presenterToolbar');
+      const switchRoleText = document.getElementById('switchRoleText');
+
+      if (isPresenter) {
+        badge.textContent = 'Modo Presentador';
+        badge.className = 'text-xs px-2.5 py-0.5 rounded-full font-bold bg-cyanAccent/20 text-cyanAccent border border-cyanAccent/30';
+        toolbar.classList.remove('hidden');
+        switchRoleText.textContent = 'Probar Modo Móvil';
+      } else {
+        badge.textContent = 'Modo Audiencia (Móvil)';
+        badge.className = 'text-xs px-2.5 py-0.5 rounded-full font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30';
+        toolbar.classList.add('hidden');
+        switchRoleText.textContent = 'Volver a Presentador';
+      }
+    }
+
+    // Navigate Slide
+    async function stepSlide(delta) {
+      if (!isPresenter) return;
+      const totalSlides = document.querySelectorAll('.slide-view').length;
+      let nextSlide = currentSessionData.currentSlide + delta;
+      if (nextSlide >= 0 && nextSlide < totalSlides) {
+        currentSessionData.currentSlide = nextSlide;
+        await setDoc(docRef, currentSessionData);
+      }
+    }
+
+    // Toggle Voting State
+    async function toggleVotingLock() {
+      if (!isPresenter) return;
+      currentSessionData.votingActive = !currentSessionData.votingActive;
+      await setDoc(docRef, currentSessionData);
+      showToast(currentSessionData.votingActive ? "Votación Desbloqueada" : "Votación Pausada");
+    }
+
+    // Toggle Answer Reveal
+    async function toggleAnswerReveal() {
+      if (!isPresenter) return;
+      currentSessionData.revealedAnswers = !currentSessionData.revealedAnswers;
+      await setDoc(docRef, currentSessionData);
+    }
+
+    // Reset All Counts
+    async function resetAllVotes() {
+      if (!isPresenter) return;
+      currentSessionData.votes = {
+        slide1: { q1_yes: 0, q1_no: 0, q2_yes: 0, q2_no: 0 },
+        slide2: {
+          r0_objeto: 0, r0_medio: 0,
+          r1_objeto: 0, r1_medio: 0,
+          r2_objeto: 0, r2_medio: 0,
+          r3_objeto: 0, r3_medio: 0,
+          r4_objeto: 0, r4_medio: 0
+        },
+        slide3: { audioA: 0, audioB: 0 }
+      };
+      await setDoc(docRef, currentSessionData);
+      userVotedMap = {};
+      showToast("Conteo de votos reiniciado");
+    }
+
+    // Submit Vote from User
+    window.castVote = async function(slideKey, itemKey, optionValue) {
+      if (!currentSessionData.votingActive) {
+        showToast("La votación está cerrada por el presentador");
+        return;
+      }
+
+      const voteKey = `${slideKey}_${itemKey}`;
+      if (!isPresenter && userVotedMap[voteKey]) {
+        showToast("Ya has registrado tu voto para esta opción");
+        return;
+      }
+
+      if (!currentSessionData.votes) currentSessionData.votes = {};
+      if (!currentSessionData.votes[slideKey]) currentSessionData.votes[slideKey] = {};
+
+      if (slideKey === 'slide1') {
+        const fullKey = `${itemKey}_${optionValue}`;
+        currentSessionData.votes.slide1[fullKey] = (currentSessionData.votes.slide1[fullKey] || 0) + 1;
+      } else if (slideKey === 'slide2') {
+        const fullKey = `${itemKey}_${optionValue}`;
+        currentSessionData.votes.slide2[fullKey] = (currentSessionData.votes.slide2[fullKey] || 0) + 1;
+      } else if (slideKey === 'slide3') {
+        currentSessionData.votes.slide3[optionValue] = (currentSessionData.votes.slide3[optionValue] || 0) + 1;
+      }
+
+      userVotedMap[voteKey] = true;
+
+      try {
+        await setDoc(docRef, currentSessionData);
+        showToast("¡Voto registrado con éxito!");
+      } catch (err) {
+        console.error("Error submitting vote:", err);
+        showToast("Error al registrar voto");
+      }
+    };
+
+    // Fail-Proof QR Code Generator (QuickChart API + QRCode.js)
+    function setupQRCodes() {
+      const audienceUrl = new URL(window.location.href);
+      audienceUrl.searchParams.set('role', 'audience');
+      const urlString = audienceUrl.toString();
+
+      document.getElementById('audienceUrlInput').value = urlString;
+
+      // QuickChart API - Fail Proof Image URL
+      const quickChartQrUrl = `https://quickchart.io/qr?text=${encodeURIComponent(urlString)}&size=250&margin=1`;
+      
+      const coverImg = document.getElementById('coverQrImage');
+      const modalImg = document.getElementById('modalQrImage');
+
+      if (coverImg) coverImg.src = quickChartQrUrl;
+      if (modalImg) modalImg.src = quickChartQrUrl;
+    }
+
+    // Play Voice Audio Sample (Web Speech API)
+    window.playVoiceSample = function(type) {
+      if ('speechSynthesis' in window) {
+        window.speechSynthesis.cancel(); // Stop current playing speech
+
+        const text = "Hola, por favor ayúdame, tuve una emergencia médica y necesito una transferencia urgente por Nequi.";
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'es-ES';
+
+        if (type === 'A') {
+          utterance.rate = 1.0;
+          utterance.pitch = 1.0;
+          showToast("Reproduciendo Audio A (Muestra Humana)");
+        } else {
+          utterance.rate = 0.85; // Sintetizada / robotizada
+          utterance.pitch = 0.6;
+          showToast("Reproduciendo Audio B (Muestra IA)");
+        }
+
+        window.speechSynthesis.speak(utterance);
+      } else {
+        showToast("Reproduciendo voz sintetizada");
+      }
+    };
+
+    // Copy Audience Link to Clipboard
+    window.copyAudienceLink = function() {
+      const input = document.getElementById('audienceUrlInput');
+      input.select();
+      document.execCommand('copy');
+      showToast("¡Enlace de audiencia copiado al portapapeles!");
+    };
+
+    // Helper: Toast Notification
+    function showToast(msg) {
+      const toast = document.getElementById('toastMessage');
+      const toastText = document.getElementById('toastText');
+      toastText.textContent = msg;
+
+      toast.classList.remove('translate-x-full');
+      setTimeout(() => {
+        toast.classList.add('translate-x-full');
+      }, 2800);
+    }
+
+    // Boot App
+    window.onload = () => {
+      initApp();
+    };
+  </script>
+</body>
+</html>
